@@ -1,0 +1,8 @@
+﻿C:\Users\nayah\source\repos\Reinge-SistemaInventarioLegacy\Reinge-SistemaInventarioLegacy\AccesoDatos.cs
+C:\Users\nayah\source\repos\Reinge-SistemaInventarioLegacy\Reinge-SistemaInventarioLegacy\Configuracion.cs
+C:\Users\nayah\source\repos\Reinge-SistemaInventarioLegacy\Reinge-SistemaInventarioLegacy\Modelos.cs
+C:\Users\nayah\source\repos\Reinge-SistemaInventarioLegacy\Reinge-SistemaInventarioLegacy\Program.cs
+C:\Users\nayah\source\repos\Reinge-SistemaInventarioLegacy\Reinge-SistemaInventarioLegacy\refactor.cs
+C:\Users\nayah\source\repos\Reinge-SistemaInventarioLegacy\Reinge-SistemaInventarioLegacy\Reportes.cs
+C:\Users\nayah\source\repos\Reinge-SistemaInventarioLegacy\Reinge-SistemaInventarioLegacy\Utilidades.cs
+C:\Users\nayah\source\repos\Reinge-SistemaInventarioLegacy\Reinge-SistemaInventarioLegacy\setup_database.sql
