@@ -1,0 +1,49 @@
+# .github/workflows/ci.yml 
+
+name: CI Reingenieria 
+
+on: 
+
+  push: { branches: [ main ] } 
+
+  pull_request: { branches: [ main ] } 
+
+jobs: 
+
+  build-test: 
+
+    runs-on: ubuntu-latest 
+
+    steps: 
+
+      - uses: actions/checkout@v4 
+
+        with: { fetch-depth: 0 } 
+
+      - uses: actions/setup-dotnet@v4 
+
+        with: { dotnet-version: '8.0.x' } 
+
+      - run: dotnet restore 
+
+      - run: dotnet build --no-restore -c Release 
+
+      - run: dotnet test --no-build -c Release --logger trx 
+
+      - name: SonarQube 
+
+        env: 
+
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
+
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }} 
+
+        run: | 
+
+          dotnet tool install --global dotnet-sonarscanner 
+
+          dotnet sonarscanner begin /k:"inventario-legacy" /d:sonar.host.url="$SONAR_HOST_URL" /d:sonar.token="$SONAR_TOKEN" 
+
+          dotnet build -c Release 
+
+          dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN" 
