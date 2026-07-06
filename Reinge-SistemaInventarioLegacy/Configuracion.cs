@@ -9,7 +9,7 @@ namespace SistemaInventarioLegacy
         
         public static string NombreEmpresa = "Distribuidora XYZ S.A.";
         public static string VersionSistema = "1.0.3";
-        public static double ImpuestoVenta = 0.13; // 13% IVA
+        public static double ImpuestoVenta = 0.16; // 13% IVA
         public static int MaximoIntentos = 3;
         public static string RutaReportes = @"C:\Reportes\Inventario\";
         public static string EmailAdmin = "admin@distribuidoraxyz.com";
