@@ -1,0 +1,296 @@
+version: '3.8'
+
+# ============================================================
+# DOCKER COMPOSE - PRODUCCIÓN READY
+# ============================================================
+# 
+# CARACTERÍSTICAS:
+# - Credenciales seguras (variables de entorno)
+# - Health checks robustos
+# - Logging centralizado
+# - Volumes persistentes
+# - Red segura
+# - Restart policies
+# - Metadata y documentación
+#
+# USO:
+#   docker-compose up -d
+#   docker-compose logs -f
+#   docker-compose down -v
+#
+# ============================================================
+
+services:
+  # ============================================================
+  # BD: SQL Server 2022 Express
+  # ============================================================
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ${COMPOSE_PROJECT_NAME:-reinge}-sqlserver
+    hostname: db
+    
+    # ============================================================
+    # SEGURIDAD: Variables de Entorno
+    # ============================================================
+    # IMPORTANTE: NO hardcodear credenciales
+    # Usar .env o docker secrets en producción
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_SA_PASSWORD:?error - Definir DB_SA_PASSWORD en .env}
+      MSSQL_PID: Express
+      # Logging
+      MSSQL_LOG_DIR: /var/opt/mssql/log
+      # Performance (ajustar según disponibilidad)
+      MSSQL_MEMORY_LIMIT_MB: ${DB_MEMORY_MB:-2048}
+    
+    # ============================================================
+    # PUERTOS
+    # ============================================================
+    # ⚠️  IMPORTANTE: NO exponer en producción
+    # En prod, usar solo en red interna (remove ports:)
+    ports:
+      - "${DB_PORT:-1433}:1433"
+    
+    # ============================================================
+    # VOLÚMENES: Persistencia de Datos
+    # ============================================================
+    volumes:
+      # Datos de BD (persistente)
+      - ${DB_VOLUME_NAME:-reinge-sqlserver-data}:/var/opt/mssql
+      
+      # Logs de SQL Server
+      - ${DB_LOG_VOLUME:-reinge-sqlserver-logs}:/var/opt/mssql/log
+      
+      # Scripts de inicialización (solo lectura)
+      - ./setup_database.sql:/docker-entrypoint-initdb.d/01-setup.sql:ro
+      
+      # Backup (opcional)
+      - ${BACKUP_PATH:-./.backups}:/var/opt/mssql/backup
+    
+    # ============================================================
+    # HEALTH CHECK: Verificar conectividad
+    # ============================================================
+    healthcheck:
+      # Comando mejorado con -C (encrypt connection)
+      test: [
+        "CMD-SHELL",
+        "/opt/mssql-tools18/bin/sqlcmd -S localhost,1433 -U sa -P \"${DB_SA_PASSWORD}\" -C -Q \"SELECT 1\" > /dev/null 2>&1 || exit 1"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    
+    # ============================================================
+    # RED: Comunicación entre servicios
+    # ============================================================
+    networks:
+      - reinge-network
+    
+    # ============================================================
+    # RESTART POLICY
+    # ============================================================
+    restart: unless-stopped
+    
+    # ============================================================
+    # RECURSOS: Límites y reservas
+    # ============================================================
+    # Solo si usas Docker Swarm o Kubernetes
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 4G
+    #     reservations:
+    #       cpus: '1'
+    #       memory: 2G
+    
+    # ============================================================
+    # LOGGING
+    # ============================================================
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    
+    # ============================================================
+    # METADATOS
+    # ============================================================
+    labels:
+      com.reinge.description: "SQL Server 2022 Express - Base de Datos"
+      com.reinge.version: "2022-latest"
+      com.reinge.environment: "${ENVIRONMENT:-development}"
+    
+    # ============================================================
+    # CAPABILIDADES LINUX (si aplica)
+    # ============================================================
+    # cap_add:
+    #   - SYS_PTRACE
+    # cap_drop:
+    #   - NET_RAW
+
+  # ============================================================
+  # APLICACIÓN: .NET 8 API
+  # ============================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimizado
+      args:
+        - ENVIRONMENT=${ENVIRONMENT:-Production}
+    container_name: ${COMPOSE_PROJECT_NAME:-reinge}-app
+    hostname: app
+    image: reinge/inventario:${APP_VERSION:-latest}
+    
+    # ============================================================
+    # DEPENDENCIAS: Esperar a que BD esté lista
+    # ============================================================
+    depends_on:
+      db:
+        condition: service_healthy
+    
+    # ============================================================
+    # SEGURIDAD: Variables de Entorno
+    # ============================================================
+    environment:
+      # Aplicación
+      ASPNETCORE_ENVIRONMENT: ${ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:8080
+      
+      # BD (construida desde variables)
+      ConnectionStrings__Inventario: >
+        Server=${DB_HOSTNAME:-db},1433;
+        Database=${DB_NAME:-Inventario};
+        User Id=sa;
+        Password=${DB_SA_PASSWORD};
+        TrustServerCertificate=True;
+        Connection Timeout=30;
+        Encrypt=true;
+      
+      # Logging
+      Logging__LogLevel__Default: ${LOG_LEVEL:-Information}
+      Logging__LogLevel__Microsoft: ${LOG_LEVEL_MS:-Warning}
+      
+      # API
+      API_PORT: "8080"
+      
+      # Opcional: Configuraciones adicionales
+      AllowedHosts: "*"
+    
+    # ============================================================
+    # PUERTOS
+    # ============================================================
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    
+    # ============================================================
+    # VOLÚMENES
+    # ============================================================
+    volumes:
+      # Logs de aplicación
+      - ${APP_LOG_VOLUME:-reinge-app-logs}:/app/logs
+      
+      # Configuración (opcional)
+      - ./appsettings.Production.json:/app/appsettings.Production.json:ro
+    
+    # ============================================================
+    # HEALTH CHECK: Verificar API responsiva
+    # ============================================================
+    healthcheck:
+      # ⚠️  IMPORTANTE: Ajustar endpoint según tu API
+      test: [
+        "CMD-SHELL",
+        "curl -f http://localhost:8080/health || exit 1"
+      ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    
+    # ============================================================
+    # RED
+    # ============================================================
+    networks:
+      - reinge-network
+    
+    # ============================================================
+    # RESTART POLICY
+    # ============================================================
+    restart: unless-stopped
+    
+    # ============================================================
+    # RECURSOS
+    # ============================================================
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1'
+    #       memory: 2G
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 1G
+    
+    # ============================================================
+    # LOGGING
+    # ============================================================
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+    
+    # ============================================================
+    # METADATOS
+    # ============================================================
+    labels:
+      com.reinge.description: ".NET 8 API - Sistema Inventario"
+      com.reinge.version: "${APP_VERSION:-latest}"
+      com.reinge.environment: "${ENVIRONMENT:-development}"
+    
+    # ============================================================
+    # STDIN/TTY (Solo desarrollo)
+    # ============================================================
+    # stdin_open: true
+    # tty: true
+
+# ============================================================
+# VOLÚMENES: Definición global
+# ============================================================
+volumes:
+  # Base de datos
+  reinge-sqlserver-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DB_DATA_PATH:-./.data/sqlserver}
+  
+  # Logs de BD
+  reinge-sqlserver-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DB_LOG_PATH:-./.data/sqlserver/logs}
+  
+  # Logs de aplicación
+  reinge-app-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${APP_LOG_PATH:-./.data/app/logs}
+
+# ============================================================
+# REDES: Comunicación entre servicios
+# ============================================================
+networks:
+  reinge-network:
+    driver: bridge
+    # driver_opts:
+    #   com.docker.network.driver.mtu: 1500
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

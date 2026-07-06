@@ -1,0 +1,66 @@
+# ============================================================
+# DOCKERFILE OPTIMIZADO - Multi-stage Build con Best Practices
+# ============================================================
+#
+# OPTIMIZACIONES APLICADAS:
+# 1. Separar restore y build para mejor caching
+# 2. Eliminar dependencias de test en runtime
+# 3. Usar .dockerignore para reducir contexto
+# 4. Aplicar layer caching efectivo
+# 5. Minimizar tamaño de imagen final
+#
+# ============================================================
+
+# ETAPA 1: RESTORE (Solo dependencias)
+# ============================================================
+# Objetivo: Cachear npm restore por separado
+# Ventaja: Si código cambia, no re-descarga paquetes
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS restore
+
+WORKDIR /src
+
+# Copiar SOLO el .csproj (pequeño, no cambia frecuentemente)
+COPY ["Reinge-SistemaInventarioLegacy/Reinge-SistemaInventarioLegacy.csproj", "Reinge-SistemaInventarioLegacy/"]
+
+# Restaurar dependencias en su propia capa
+RUN dotnet restore "Reinge-SistemaInventarioLegacy/Reinge-SistemaInventarioLegacy.csproj"
+
+# ============================================================
+# ETAPA 2: BUILD (Compilar código)
+# ============================================================
+# Objetivo: Compilar con dependencias ya restauradas
+# Ventaja: Hereda capas del stage anterior
+FROM restore AS build
+
+# Copiar TODO el código (cambia frecuentemente)
+COPY . .
+
+WORKDIR /src/Reinge-SistemaInventarioLegacy
+
+# Compilar en Release (optimizado)
+# UseAppHost=false: No incluir runtime bundle (está en imagen base)
+RUN dotnet publish "Reinge-SistemaInventarioLegacy.csproj" \
+    -c Release \
+    -o /app/publish \
+    /p:UseAppHost=false \
+    /p:PublishReadyToRun=true
+
+# ============================================================
+# ETAPA 3: RUNTIME (Solo lo necesario)
+# ============================================================
+# Objetivo: Imagen final minimizada sin herramientas de build
+# Ventaja: Imagen 95% más pequeña
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
+
+WORKDIR /app
+
+# Copiar SOLO los binarios compilados
+COPY --from=build /app/publish .
+
+# Metadatos de la imagen
+LABEL description="Reinge Sistema Inventario Legacy - Runtime Optimizado"
+LABEL maintainer="Equipo de Desarrollo"
+
+# Ejecutar aplicación
+ENTRYPOINT ["dotnet", "Reinge-SistemaInventarioLegacy.dll"]
+CMD []

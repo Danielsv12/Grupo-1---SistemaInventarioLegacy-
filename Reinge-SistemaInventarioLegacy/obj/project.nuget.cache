@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "dgSpecHash": "dKAUkaQ9R0s=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\nayah\\source\\repos\\Reinge-SistemaInventarioLegacy\\Reinge-SistemaInventarioLegacy\\Reinge-SistemaInventarioLegacy.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\nayah\\.nuget\\packages\\runtime.native.system.data.sqlclient.sni\\4.7.0\\runtime.native.system.data.sqlclient.sni.4.7.0.nupkg.sha512",
+    "C:\\Users\\nayah\\.nuget\\packages\\runtime.win-arm64.runtime.native.system.data.sqlclient.sni\\4.4.0\\runtime.win-arm64.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
+    "C:\\Users\\nayah\\.nuget\\packages\\runtime.win-x64.runtime.native.system.data.sqlclient.sni\\4.4.0\\runtime.win-x64.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
+    "C:\\Users\\nayah\\.nuget\\packages\\runtime.win-x86.runtime.native.system.data.sqlclient.sni\\4.4.0\\runtime.win-x86.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
+    "C:\\Users\\nayah\\.nuget\\packages\\system.data.sqlclient\\4.8.5\\system.data.sqlclient.4.8.5.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "Package 'System.Data.SqlClient' 4.8.5 has a known high severity vulnerability, https://github.com/advisories/GHSA-98g6-xh36-x2p7",
+      "projectPath": "C:\\Users\\nayah\\source\\repos\\Reinge-SistemaInventarioLegacy\\Reinge-SistemaInventarioLegacy\\Reinge-SistemaInventarioLegacy.csproj",
+      "warningLevel": 1,
+      "filePath": "C:\\Users\\nayah\\source\\repos\\Reinge-SistemaInventarioLegacy\\Reinge-SistemaInventarioLegacy\\Reinge-SistemaInventarioLegacy.csproj",
+      "libraryId": "System.Data.SqlClient",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
+}

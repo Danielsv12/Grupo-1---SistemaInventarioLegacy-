@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # ============================================================
+  # APLICACIÓN: Reinge Sistema Inventario Legacy
+  # ============================================================
+  inventario-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimizado
+    container_name: inventario-app
+    image: reinge/inventario:latest
+    
+    # Expose port (sin mapeo, solo internal)
+    expose:
+      - "5000"
+    
+    # Variables de entorno
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+      - ConnectionString=${INVENTARIO_DB_CONNECTION:-Server=sqlserver;Database=InventarioLegacyDB;User Id=sa;Password=${SA_PASSWORD:?error}}
+      - LogLevel__Default=Information
+    
+    # Volúmenes para logs
+    volumes:
+      - ./logs:/app/logs
+    
+    # Política de restart
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    
+    # Dependencias
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    
+    # Red
+    networks:
+      - inventario-network
+    
+    # Labels para documentación
+    labels:
+      com.reinge.description: "Reinge Sistema Inventario Legacy - Aplicación Principal"
+      com.reinge.version: "1.0.0"
+
+  # ============================================================
+  # BD: SQL Server
+  # ============================================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: inventario-sqlserver
+    
+    # Puerto mapeado
+    ports:
+      - "1433:1433"
+    
+    # Variables de entorno (SA password REQUERIDO)
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SA_PASSWORD:?error - Debe definir SA_PASSWORD}
+      - MSSQL_PID=Express
+    
+    # Volumen para persistencia
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./setup_database.sql:/docker-entrypoint-initdb.d/01-setup.sql:ro
+    
+    # Política de restart
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD}", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 40s
+    
+    # Red
+    networks:
+      - inventario-network
+    
+    # Labels
+    labels:
+      com.reinge.description: "SQL Server Express para Inventario"
+      com.reinge.version: "2022-latest"
+
+# ============================================================
+# VOLÚMENES
+# ============================================================
+volumes:
+  sqlserver-data:
+    driver: local
+
+# ============================================================
+# REDES
+# ============================================================
+networks:
+  inventario-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
