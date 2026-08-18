@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="SistemaInventario.Application/SistemaInventario.Application.csproj" />
+  <Project Path="SistemaInventario.Domain/SistemaInventario.Domain.csproj" />
+  <Project Path="SistemaInventario.Infrastructure/SistemaInventario.Infrastructure.csproj" />
+  <Project Path="SistemaInventario.Presentation/SistemaInventario.Presentation.csproj" />
+  <Project Path="SistemaInventario.Tests/SistemaInventario.Tests.csproj" />
+</Solution>

@@ -1,0 +1,17 @@
+*.log
+bin/
+obj/
+.vs/
+.vscode/
+*.db
+*.sqlite
+appsettings.Development.json
+.env
+.env.local
+node_modules/
+dist/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
