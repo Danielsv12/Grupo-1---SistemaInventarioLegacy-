@@ -26,6 +26,7 @@
     <ProjectReference Include="..\SistemaInventario.Domain\SistemaInventario.Domain.csproj" />
     <ProjectReference Include="..\SistemaInventario.Application\SistemaInventario.Application.csproj" />
     <ProjectReference Include="..\SistemaInventario.Infrastructure\SistemaInventario.Infrastructure.csproj" />
+    <ProjectReference Include="..\SistemaInventario.Presentation\SistemaInventario.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

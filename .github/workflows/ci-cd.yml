@@ -25,10 +25,10 @@ jobs:
           - 1433:1433
 
     steps:
-    # ACTUALIZADO: Checkout v4
+    # Checkout v4
     - uses: actions/checkout@v4
     
-    # ACTUALIZADO: Setup .NET v4
+    # Setup .NET v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -40,12 +40,16 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     
+    # ========== QUALITY GATE: Architecture Boundaries Tests ==========
+    - name: Run architecture boundary tests (ADR-001 Quality Gate)
+      run: dotnet test SistemaInventario.Tests/SistemaInventario.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --filter "FullyQualifiedName~SistemaInventario.Tests.Architecture"
+      continue-on-error: false
+    
     - name: Run unit tests
       run: dotnet test SistemaInventario.Tests/SistemaInventario.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
     
     - name: Upload test results
       if: always()
-      # CORREGIDO: Actualizado de v3 a v4
       uses: actions/upload-artifact@v4
       with:
         name: test-results
@@ -56,10 +60,10 @@ jobs:
     needs: build-and-test
     
     steps:
-    # ACTUALIZADO: Checkout v4
+    # Checkout v4
     - uses: actions/checkout@v4
     
-    # ACTUALIZADO: Setup .NET v4
+    # Setup .NET v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -83,21 +87,21 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
-    # ACTUALIZADO: Checkout v4
+    # Checkout v4
     - uses: actions/checkout@v4
     
-    # ACTUALIZADO: Setup Buildx v3
+    # Setup Buildx v3
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
     
-    # ACTUALIZADO: Login Action v3
+    # Login Action v3
     - name: Login to DockerHub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     
-    # ACTUALIZADO: Build-Push Action v5
+    # Build-Push Action v5
     - name: Build and push
       uses: docker/build-push-action@v5
       with:
