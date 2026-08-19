@@ -12,23 +12,22 @@ jobs:
     
     services:
       sqlserver:
-        image: mcr.microsoft.com/mssql/server:latest
+        image: mcr.microsoft.com/mssql/server:2022-latest
         env:
           ACCEPT_EULA: "Y"
           SA_PASSWORD: "TestPassword123!"
+          MSSQL_SA_PASSWORD: "TestPassword123!"
         options: >-
-          --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P TestPassword123! -Q 'SELECT 1'"
+          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P TestPassword123! -C -Q 'SELECT 1' || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P TestPassword123! -Q 'SELECT 1'"
           --health-interval 10s
-          --health-timeout 3s
+          --health-timeout 5s
           --health-retries 10
         ports:
           - 1433:1433
 
     steps:
-    # Checkout v4
     - uses: actions/checkout@v4
     
-    # Setup .NET v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -42,28 +41,32 @@ jobs:
     
     # ========== QUALITY GATE: Architecture Boundaries Tests ==========
     - name: Run architecture boundary tests (ADR-001 Quality Gate)
-      run: dotnet test SistemaInventario.Tests/SistemaInventario.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --filter "FullyQualifiedName~SistemaInventario.Tests.Architecture"
+      run: dotnet test SistemaInventario.Tests/SistemaInventario.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=arch-test-results.trx" --filter "FullyQualifiedName~SistemaInventario.Tests.Architecture"
       continue-on-error: false
     
     - name: Run unit tests
-      run: dotnet test SistemaInventario.Tests/SistemaInventario.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+      run: dotnet test SistemaInventario.Tests/SistemaInventario.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=unit-test-results.trx"
     
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: test-results
-        path: '**/test-results.trx'
+        path: '**/*.trx'
 
   code-quality:
     runs-on: ubuntu-latest
     needs: build-and-test
     
     steps:
-    # Checkout v4
     - uses: actions/checkout@v4
     
-    # Setup .NET v4
+    - name: Setup Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -77,9 +80,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
-        dotnet sonarscanner begin /k:InventarioLegacy /d:sonar.host.url=https://sonarcloud.io /d:sonar.login=$SONAR_TOKEN
+        dotnet sonarscanner begin /k:InventarioLegacy /d:sonar.host.url=https://sonarcloud.io /d:sonar.token=$SONAR_TOKEN
         dotnet build --configuration Release
-        dotnet sonarscanner end /d:sonar.login=$SONAR_TOKEN
+        dotnet sonarscanner end /d:sonar.token=$SONAR_TOKEN
 
   docker-build:
     runs-on: ubuntu-latest
@@ -87,21 +90,17 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
-    # Checkout v4
     - uses: actions/checkout@v4
     
-    # Setup Buildx v3
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
     
-    # Login Action v3
     - name: Login to DockerHub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     
-    # Build-Push Action v5
     - name: Build and push
       uses: docker/build-push-action@v5
       with:
