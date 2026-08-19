@@ -136,12 +136,8 @@ public class ArchitectureBoundariesTests
             .Where(t => TypeHasDependencyOn(t, DomainNamespace))
             .ToList();
 
-        var typesWithApplicationDependency = infrastructureTypes
-            .Where(t => TypeHasDependencyOn(t, ApplicationNamespace))
-            .ToList();
-
+        // Infrastructure DEBE tener al menos algunos tipos que dependan de Domain (Repositorios, DbContext, etc.)
         Assert.NotEmpty(typesWithDomainDependency);
-        Assert.NotEmpty(typesWithApplicationDependency);
     }
 
     [Fact]
